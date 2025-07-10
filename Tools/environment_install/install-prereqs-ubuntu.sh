@@ -184,6 +184,9 @@ fi
 
 # Lists of packages to install
 BASE_PKGS="build-essential ccache g++ gawk git make wget valgrind screen python3-pexpect astyle"
+
+# Python packages - we'll use requirements.txt for venv-based installs on modern releases
+# and fall back to individual packages for older releases
 PYTHON_PKGS="future lxml pymavlink pyserial MAVProxy geocoder empy==3.3.4 ptyprocess dronecan"
 PYTHON_PKGS="$PYTHON_PKGS flake8 junitparser wsproto tabulate"
 
@@ -201,27 +204,25 @@ if [ ${RELEASE_CODENAME} == 'bookworm' ] ||
    [ ${RELEASE_CODENAME} == 'oracular' ] ||
    [ ${RELEASE_CODENAME} == 'plucky' ] ||
    false; then
-    # on Lunar (and presumably later releases), we install in venv, below
-    PYTHON_PKGS+=" numpy pyparsing psutil"
+    # on modern releases, we use requirements.txt in venv for better dependency management
+    # Individual packages will be added to PYTHON_PKGS only if requirements.txt fails
+    USE_REQUIREMENTS_TXT=true
     SITL_PKGS="python3-dev"
 else
-SITL_PKGS="libtool libxml2-dev libxslt1-dev ${PYTHON_V}-dev ${PYTHON_V}-pip ${PYTHON_V}-setuptools ${PYTHON_V}-numpy ${PYTHON_V}-pyparsing ${PYTHON_V}-psutil"
+    # Older releases use system packages
+    USE_REQUIREMENTS_TXT=false
+    SITL_PKGS="libtool libxml2-dev libxslt1-dev ${PYTHON_V}-dev ${PYTHON_V}-pip ${PYTHON_V}-setuptools ${PYTHON_V}-numpy ${PYTHON_V}-pyparsing ${PYTHON_V}-psutil"
 fi
 
 # add some packages required for commonly-used MAVProxy modules:
 if [[ $SKIP_AP_GRAPHIC_ENV -ne 1 ]]; then
-    if [ ${RELEASE_CODENAME} == 'bookworm' ] ||
-       [ ${RELEASE_CODENAME} == 'lunar' ] ||
-       [ ${RELEASE_CODENAME} == 'mantic' ] ||
-       [ ${RELEASE_CODENAME} == 'noble' ] ||
-       [ ${RELEASE_CODENAME} == 'oracular' ] ||
-       [ ${RELEASE_CODENAME} == 'plucky' ] ||
-       false; then
-        PYTHON_PKGS+=" matplotlib scipy opencv-python pyyaml"
+    if [ "$USE_REQUIREMENTS_TXT" = true ]; then
+        # Modern releases: graphics packages handled via requirements.txt
         SITL_PKGS+=" xterm xfonts-base libcsfml-dev libcsfml-audio${SITLCFML_VERSION} libcsfml-dev libcsfml-graphics${SITLCFML_VERSION} libcsfml-network${SITLCFML_VERSION} libcsfml-system${SITLCFML_VERSION} libcsfml-window${SITLCFML_VERSION} libsfml-audio${SITLFML_VERSION} libsfml-dev libsfml-graphics${SITLFML_VERSION} libsfml-network${SITLFML_VERSION} libsfml-system${SITLFML_VERSION} libsfml-window${SITLFML_VERSION}"
-  else
-  SITL_PKGS="$SITL_PKGS xterm xfonts-base ${PYTHON_V}-matplotlib ${PYTHON_V}-serial ${PYTHON_V}-scipy ${PYTHON_V}-opencv libcsfml-dev libcsfml-audio${SITLCFML_VERSION} libcsfml-dev libcsfml-graphics${SITLCFML_VERSION} libcsfml-network${SITLCFML_VERSION} libcsfml-system${SITLCFML_VERSION} libcsfml-window${SITLCFML_VERSION} libsfml-audio${SITLFML_VERSION} libsfml-dev libsfml-graphics${SITLFML_VERSION} libsfml-network${SITLFML_VERSION} libsfml-system${SITLFML_VERSION} libsfml-window${SITLFML_VERSION} ${PYTHON_V}-yaml"
-  fi
+    else
+        # Older releases: use system packages
+        SITL_PKGS="$SITL_PKGS xterm xfonts-base ${PYTHON_V}-matplotlib ${PYTHON_V}-serial ${PYTHON_V}-scipy ${PYTHON_V}-opencv libcsfml-dev libcsfml-audio${SITLCFML_VERSION} libcsfml-dev libcsfml-graphics${SITLCFML_VERSION} libcsfml-network${SITLCFML_VERSION} libcsfml-system${SITLCFML_VERSION} libcsfml-window${SITLCFML_VERSION} libsfml-audio${SITLFML_VERSION} libsfml-dev libsfml-graphics${SITLFML_VERSION} libsfml-network${SITLFML_VERSION} libsfml-system${SITLFML_VERSION} libsfml-window${SITLFML_VERSION} ${PYTHON_V}-yaml"
+    fi
 fi
 if [[ $SKIP_AP_COV_ENV -ne 1 ]]; then
   # Coverage utilities
@@ -353,20 +354,8 @@ if [[ $SKIP_AP_GRAPHIC_ENV -ne 1 ]]; then
       SITL_PKGS+=" fonts-freefont-ttf libfreetype6-dev libjpeg8-dev libpng12-0 libportmidi-dev libsdl-image1.2-dev libsdl-mixer1.2-dev libsdl-ttf2.0-dev libsdl1.2-dev"  # for pygame
   fi
 
-  if [ ${RELEASE_CODENAME} == 'bookworm' ]; then
-      PYTHON_PKGS+=" opencv-python"
-      SITL_PKGS+=" python3-wxgtk4.0"
-      SITL_PKGS+=" fonts-freefont-ttf libfreetype6-dev libpng16-16 libportmidi-dev libsdl-image1.2-dev libsdl-mixer1.2-dev libsdl-ttf2.0-dev libsdl1.2-dev"  # for pygame
-  elif [ ${RELEASE_CODENAME} == 'lunar' ]; then
-      PYTHON_PKGS+=" wxpython opencv-python"
-      SITL_PKGS+=" python3-wxgtk4.0"
-      SITL_PKGS+=" fonts-freefont-ttf libfreetype6-dev libpng16-16 libportmidi-dev libsdl-image1.2-dev libsdl-mixer1.2-dev libsdl-ttf2.0-dev libsdl1.2-dev"  # for pygame
-  elif [ ${RELEASE_CODENAME} == 'mantic' ] ||
-       [ ${RELEASE_CODENAME} == 'noble' ] ||
-       [ ${RELEASE_CODENAME} == 'oracular' ] ||
-       [ ${RELEASE_CODENAME} == 'plucky' ] ||
-       false; then
-      PYTHON_PKGS+=" wxpython opencv-python"
+  if [ "$USE_REQUIREMENTS_TXT" = true ]; then
+      # Modern releases: wxpython and related packages handled via requirements.txt
       SITL_PKGS+=" python3-wxgtk4.0"
       SITL_PKGS+=" fonts-freefont-ttf libfreetype6-dev libpng16-16 libportmidi-dev libsdl-image1.2-dev libsdl-mixer1.2-dev libsdl-ttf2.0-dev libsdl1.2-dev"  # for pygame
   elif [ ${RELEASE_CODENAME} == 'bullseye' ] ||
@@ -473,14 +462,70 @@ if [ ${RELEASE_CODENAME} == 'bookworm' ] ||
     $PIP install $PIP_USER_ARGUMENT -U attrdict3
 fi
 
-# install Python packages one-at-a-time so it is clear which package
-# is causing problems:
-for PACKAGE in $PYTHON_PKGS; do
-    if [ "$PACKAGE" == "wxpython" ]; then
-        echo "##### $PACKAGE takes a *VERY* long time to install (~30 minutes).  Be patient."
+# install Python packages - use requirements.txt for modern releases, fallback to individual packages
+if [ "$USE_REQUIREMENTS_TXT" = true ]; then
+    SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
+    REQUIREMENTS_FILE="$SCRIPT_DIR/requirements.txt"
+    
+    if [ -f "$REQUIREMENTS_FILE" ]; then
+        heading "Installing Python packages from requirements.txt with NumPy 2.0 compatibility"
+        echo "Using requirements file: $REQUIREMENTS_FILE"
+        
+        # Filter requirements based on environment variables
+        if [[ $SKIP_AP_GRAPHIC_ENV -eq 1 ]]; then
+            echo "Skipping graphics packages (SKIP_AP_GRAPHIC_ENV=1)"
+            grep -v "matplotlib\|scipy\|opencv-python\|wxpython\|pyyaml" "$REQUIREMENTS_FILE" > /tmp/ardupilot_requirements_filtered.txt
+            REQUIREMENTS_FILE="/tmp/ardupilot_requirements_filtered.txt"
+        fi
+        
+        if [[ $SKIP_AP_EXT_ENV -eq 1 ]]; then
+            echo "Skipping extended packages (SKIP_AP_EXT_ENV=1)"
+            grep -v "pygame\|intelhex" "$REQUIREMENTS_FILE" > /tmp/ardupilot_requirements_filtered2.txt
+            REQUIREMENTS_FILE="/tmp/ardupilot_requirements_filtered2.txt"
+        fi
+        
+        if ! time $PIP install $PIP_USER_ARGUMENT -r "$REQUIREMENTS_FILE"; then
+            echo "WARNING: requirements.txt installation failed, falling back to individual packages"
+            USE_REQUIREMENTS_TXT=false
+        else
+            echo "Successfully installed packages from requirements.txt"
+            
+            # Validate NumPy version
+            NUMPY_VERSION=$($PIP show numpy 2>/dev/null | grep Version | cut -d' ' -f2)
+            if [ -n "$NUMPY_VERSION" ]; then
+                echo "NumPy version installed: $NUMPY_VERSION"
+                if [[ "$NUMPY_VERSION" =~ ^2\. ]]; then
+                    echo "WARNING: NumPy 2.x detected. This may cause MAVProxy map module issues."
+                    echo "If you experience problems, try: pip install 'numpy<2.0' --force-reinstall"
+                fi
+            fi
+        fi
+        
+        # Clean up temp files
+        rm -f /tmp/ardupilot_requirements_filtered*.txt
+    else
+        echo "WARNING: requirements.txt not found at $REQUIREMENTS_FILE, falling back to individual packages"
+        USE_REQUIREMENTS_TXT=false
     fi
-    time $PIP install $PIP_USER_ARGUMENT -U $PACKAGE
-done
+fi
+
+# Fallback to individual package installation if requirements.txt failed or not available
+if [ "$USE_REQUIREMENTS_TXT" = false ]; then
+    # Add back packages that would be missing for older releases or fallback
+    if [[ $USE_REQUIREMENTS_TXT = false ]] && [[ $SKIP_AP_GRAPHIC_ENV -ne 1 ]]; then
+        PYTHON_PKGS+=" matplotlib scipy opencv-python pyyaml"
+        # Add numpy with constraint for compatibility
+        PYTHON_PKGS+=" numpy<2.0 pyparsing psutil"
+    fi
+    
+    # install Python packages one-at-a-time so it is clear which package is causing problems:
+    for PACKAGE in $PYTHON_PKGS; do
+        if [ "$PACKAGE" == "wxpython" ]; then
+            echo "##### $PACKAGE takes a *VERY* long time to install (~30 minutes).  Be patient."
+        fi
+        time $PIP install $PIP_USER_ARGUMENT -U $PACKAGE
+    done
+fi
 
 # somehow Plucky really wants Pillow reinstalled or MAVProxy's map
 # won't load (version mismatch between "Core" and "Pillow")
