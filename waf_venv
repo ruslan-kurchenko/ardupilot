@@ -1,0 +1,18 @@
+#!/bin/bash
+# Wrapper script to run waf with the virtual environment Python
+
+# Get the directory of this script
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+# Set the Python executable to use
+PYTHON_EXEC="/home/walle/venv-ardupilot/bin/python3"
+
+# Check if the Python executable exists
+if [ ! -f "$PYTHON_EXEC" ]; then
+    echo "Error: Python executable not found at $PYTHON_EXEC"
+    echo "Please ensure the virtual environment is set up correctly."
+    exit 1
+fi
+
+# Run waf with the specified Python interpreter
+exec "$PYTHON_EXEC" "$SCRIPT_DIR/waf" "$@"
